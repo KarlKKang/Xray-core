@@ -137,7 +137,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 							Dialer: h,
 							Strategy: mux.ClientStrategy{
 								MaxConcurrency: uint32(config.Concurrency),
-								MaxConnection:  128,
+								MaxConnection:  65535,
 							},
 						},
 					},
@@ -158,7 +158,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 							Dialer: h,
 							Strategy: mux.ClientStrategy{
 								MaxConcurrency: uint32(config.XudpConcurrency),
-								MaxConnection:  128,
+								MaxConnection:  65535,
 							},
 						},
 					},
