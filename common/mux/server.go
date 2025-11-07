@@ -92,6 +92,7 @@ type ServerWorker struct {
 	sessionManager *SessionManager
 	done           *done.Instance
 	timer          *time.Ticker
+	keepAliveTimer *time.Ticker
 }
 
 func NewServerWorker(ctx context.Context, d routing.Dispatcher, link *transport.Link) (*ServerWorker, error) {
@@ -101,12 +102,14 @@ func NewServerWorker(ctx context.Context, d routing.Dispatcher, link *transport.
 		sessionManager: NewSessionManager(),
 		done:           done.New(),
 		timer:          time.NewTicker(60 * time.Second),
+		keepAliveTimer: time.NewTicker(45 * time.Second),
 	}
 	if inbound := session.InboundFromContext(ctx); inbound != nil {
 		inbound.CanSpliceCopy = 3
 	}
 	go worker.run(ctx)
 	go worker.monitor()
+	go worker.keepAlive()
 	return worker, nil
 }
 
@@ -125,8 +128,6 @@ func (w *ServerWorker) monitor() {
 	defer w.timer.Stop()
 
 	for {
-		checkSize := w.sessionManager.Size()
-		checkCount := w.sessionManager.Count()
 		select {
 		case <-w.done.Wait():
 			w.sessionManager.Close()
@@ -134,9 +135,23 @@ func (w *ServerWorker) monitor() {
 			common.Interrupt(w.link.Reader)
 			return
 		case <-w.timer.C:
-			if w.sessionManager.CloseIfNoSessionAndIdle(checkSize, checkCount) {
+			if w.sessionManager.CloseIfNoSessionAndIdle(true) {
 				common.Must(w.done.Close())
 			}
+		}
+	}
+}
+
+func (m *ServerWorker) keepAlive() {
+	defer m.keepAliveTimer.Stop()
+
+	for {
+		select {
+		case <-m.done.Wait():
+			return
+		case <-m.keepAliveTimer.C:
+			kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream)
+			kaWriter.writeKeepAlive()
 		}
 	}
 }
@@ -341,6 +356,8 @@ func (w *ServerWorker) handleFrame(ctx context.Context, reader *buf.BufferedRead
 	if err != nil {
 		return errors.New("failed to read metadata").Base(err)
 	}
+
+	w.sessionManager.UpdateLastSeen()
 
 	switch meta.SessionStatus {
 	case SessionStatusKeepAlive:

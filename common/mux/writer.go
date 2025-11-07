@@ -68,6 +68,18 @@ func (w *Writer) writeMetaOnly() error {
 	return w.writer.WriteMultiBuffer(buf.MultiBuffer{b})
 }
 
+func (w *Writer) writeKeepAlive() error {
+	meta := FrameMetadata{
+		SessionID:     w.id,
+		SessionStatus: SessionStatusKeepAlive,
+	}
+	b := buf.New()
+	if err := meta.WriteTo(b); err != nil {
+		return err
+	}
+	return w.writer.WriteMultiBuffer(buf.MultiBuffer{b})
+}
+
 func writeMetaWithFrame(writer buf.Writer, meta FrameMetadata, data buf.MultiBuffer) error {
 	frame := buf.New()
 	if len(data) == 1 {

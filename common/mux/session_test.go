@@ -41,11 +41,11 @@ func TestSessionManagerClose(t *testing.T) {
 	m := NewSessionManager()
 	s := m.Allocate(&ClientStrategy{})
 
-	if m.CloseIfNoSessionAndIdle(m.Size(), m.Count()) {
+	if m.CloseIfNoSessionAndIdle(true) {
 		t.Error("able to close")
 	}
 	m.Remove(false, s.ID)
-	if !m.CloseIfNoSessionAndIdle(m.Size(), m.Count()) {
+	if !m.CloseIfNoSessionAndIdle(true) {
 		t.Error("not able to close")
 	}
 }

@@ -179,6 +179,8 @@ type ClientWorker struct {
 	done           *done.Instance
 	timer          *time.Ticker
 	strategy       ClientStrategy
+	unreusableAt   time.Time
+	keepAliveTimer *time.Ticker
 }
 
 var (
@@ -192,12 +194,15 @@ func NewClientWorker(stream transport.Link, s ClientStrategy) (*ClientWorker, er
 		sessionManager: NewSessionManager(),
 		link:           stream,
 		done:           done.New(),
-		timer:          time.NewTicker(time.Second * 16),
+		timer:          time.NewTicker(time.Minute),
 		strategy:       s,
+		unreusableAt:   time.Now().Add(time.Hour),
+		keepAliveTimer: time.NewTicker(time.Second * 45),
 	}
 
 	go c.fetchOutput()
 	go c.monitor()
+	go c.keepAlive()
 
 	return c, nil
 }
@@ -227,8 +232,6 @@ func (m *ClientWorker) monitor() {
 	defer m.timer.Stop()
 
 	for {
-		checkSize := m.sessionManager.Size()
-		checkCount := m.sessionManager.Count()
 		select {
 		case <-m.done.Wait():
 			m.sessionManager.Close()
@@ -236,9 +239,23 @@ func (m *ClientWorker) monitor() {
 			common.Interrupt(m.link.Reader)
 			return
 		case <-m.timer.C:
-			if m.sessionManager.CloseIfNoSessionAndIdle(checkSize, checkCount) {
+			if m.sessionManager.CloseIfNoSessionAndIdle(!time.Now().After(m.unreusableAt)) {
 				common.Must(m.done.Close())
 			}
+		}
+	}
+}
+
+func (m *ClientWorker) keepAlive() {
+	defer m.keepAliveTimer.Stop()
+
+	for {
+		select {
+		case <-m.done.Wait():
+			return
+		case <-m.keepAliveTimer.C:
+			kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream)
+			kaWriter.writeKeepAlive()
 		}
 	}
 }
@@ -298,6 +315,10 @@ func (m *ClientWorker) IsClosing() bool {
 // it might be because it is closing, or the number of connections has reached the limit.
 func (m *ClientWorker) IsFull() bool {
 	if m.IsClosing() || m.Closed() {
+		return true
+	}
+
+	if time.Now().After(m.unreusableAt) {
 		return true
 	}
 
@@ -395,6 +416,8 @@ func (m *ClientWorker) fetchOutput() {
 			}
 			break
 		}
+
+		m.sessionManager.UpdateLastSeen()
 
 		switch meta.SessionStatus {
 		case SessionStatusKeepAlive:

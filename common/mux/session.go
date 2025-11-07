@@ -21,12 +21,14 @@ type SessionManager struct {
 	sessions map[uint16]*Session
 	count    uint16
 	closed   bool
+	lastSeen time.Time
 }
 
 func NewSessionManager() *SessionManager {
 	return &SessionManager{
 		count:    0,
 		sessions: make(map[uint16]*Session, 16),
+		lastSeen: time.Now(),
 	}
 }
 
@@ -117,7 +119,14 @@ func (m *SessionManager) Get(id uint16) (*Session, bool) {
 	return s, found
 }
 
-func (m *SessionManager) CloseIfNoSessionAndIdle(checkSize int, checkCount int) bool {
+func (m *SessionManager) UpdateLastSeen() {
+	m.Lock()
+	defer m.Unlock()
+
+	m.lastSeen = time.Now()
+}
+
+func (m *SessionManager) CloseIfNoSessionAndIdle(workerUsable bool) bool {
 	m.Lock()
 	defer m.Unlock()
 
@@ -125,7 +134,11 @@ func (m *SessionManager) CloseIfNoSessionAndIdle(checkSize int, checkCount int) 
 		return true
 	}
 
-	if len(m.sessions) != 0 || checkSize != 0 || checkCount != int(m.count) {
+	if len(m.sessions) != 0 {
+		return false
+	}
+
+	if workerUsable && time.Since(m.lastSeen) <= time.Minute {
 		return false
 	}
 
