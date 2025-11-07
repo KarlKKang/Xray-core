@@ -76,7 +76,7 @@ func writeMetaWithFrame(writer buf.Writer, meta FrameMetadata, data buf.MultiBuf
 	if err := meta.WriteTo(frame); err != nil {
 		return err
 	}
-	if _, err := serial.WriteUint16(frame, uint16(data.Len())); err != nil {
+	if _, err := serial.WriteUint32(frame, uint32(data.Len())); err != nil {
 		return err
 	}
 
@@ -104,7 +104,11 @@ func (w *Writer) WriteMultiBuffer(mb buf.MultiBuffer) error {
 	for !mb.IsEmpty() {
 		var chunk buf.MultiBuffer
 		if w.transferType == protocol.TransferTypeStream {
-			mb, chunk = buf.SplitSize(mb, 8*1024)
+			for i := range mb {
+				chunk = append(chunk, mb[i])
+				mb[i] = nil
+			}
+			mb = mb[:0]
 		} else {
 			mb2, b := buf.SplitFirst(mb)
 			mb = mb2

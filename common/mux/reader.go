@@ -1,10 +1,10 @@
 package mux
 
 import (
+	"encoding/binary"
 	"io"
 
 	"github.com/xtls/xray-core/common/buf"
-	"github.com/xtls/xray-core/common/crypto"
 	"github.com/xtls/xray-core/common/errors"
 	"github.com/xtls/xray-core/common/net"
 	"github.com/xtls/xray-core/common/serial"
@@ -32,7 +32,7 @@ func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 		return nil, io.EOF
 	}
 
-	size, err := serial.ReadUint16(r.reader)
+	size, err := serial.ReadUint32(r.reader)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,59 @@ func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	return buf.MultiBuffer{b}, nil
 }
 
+type StreamReader struct {
+	reader      *buf.BufferedReader
+
+	buffer       []byte
+	leftOverSize int32
+	numChunk     uint32
+}
+
 // NewStreamReader creates a new StreamReader.
-func NewStreamReader(reader *buf.BufferedReader) buf.Reader {
-	return crypto.NewChunkStreamReaderWithChunkCount(crypto.PlainChunkSizeParser{}, reader, 1)
+func NewStreamReader(reader io.Reader) *StreamReader {
+	r := &StreamReader{}
+	if breader, ok := reader.(*buf.BufferedReader); ok {
+		r.reader = breader
+	} else {
+		r.reader = &buf.BufferedReader{Reader: buf.NewReader(reader)}
+	}
+
+	return r
+}
+
+func (r *StreamReader) readSize() (uint32, error) {
+	buffer :=  make([]byte, 4)
+	if _, err := io.ReadFull(r.reader, buffer); err != nil {
+		return 0, err
+	}
+	return binary.BigEndian.Uint32(buffer), nil
+}
+
+func (r *StreamReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
+	size := r.leftOverSize
+	if size == 0 {
+		r.numChunk++
+		if r.numChunk > 1 {
+			return nil, io.EOF
+		}
+		nextSize, err := r.readSize()
+		if err != nil {
+			return nil, err
+		}
+		if nextSize == 0 {
+			return nil, io.EOF
+		}
+		if nextSize >= 1<<31 {
+			return nil, errors.New("stream size too large: ", nextSize)
+		}
+		size = int32(nextSize)
+	}
+	r.leftOverSize = size
+
+	mb, err := r.reader.ReadAtMost(size)
+	if !mb.IsEmpty() {
+		r.leftOverSize -= mb.Len()
+		return mb, nil
+	}
+	return nil, err
 }

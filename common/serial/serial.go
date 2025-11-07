@@ -21,6 +21,22 @@ func WriteUint16(writer io.Writer, value uint16) (int, error) {
 	return writer.Write(b[:])
 }
 
+// ReadUint32 reads first four bytes from the reader, and then converts them to an uint32 value.
+func ReadUint32(reader io.Reader) (uint32, error) {
+	var b [4]byte
+	if _, err := io.ReadFull(reader, b[:]); err != nil {
+		return 0, err
+	}
+	return binary.BigEndian.Uint32(b[:]), nil
+}
+
+// WriteUint32 writes an uint32 value into writer.
+func WriteUint32(writer io.Writer, value uint32) (int, error) {
+	var b [4]byte
+	binary.BigEndian.PutUint32(b[:], value)
+	return writer.Write(b[:])
+}
+
 // WriteUint64 writes an uint64 value into writer.
 func WriteUint64(writer io.Writer, value uint64) (int, error) {
 	var b [8]byte
