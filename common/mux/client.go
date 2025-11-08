@@ -352,6 +352,7 @@ func (m *ClientWorker) Dispatch(ctx context.Context, link *transport.Link) bool 
 }
 
 func (m *ClientWorker) handleStatueKeepAlive(meta *FrameMetadata, reader *buf.BufferedReader) error {
+	errors.LogDebug(context.Background(), "received mux keepalive frame")
 	if meta.Option.Has(OptionData) {
 		return buf.Copy(NewStreamReader(reader), buf.Discard)
 	}
