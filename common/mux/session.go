@@ -215,11 +215,11 @@ func (s *Session) Close(locked bool) error {
 }
 
 // NewReader creates a buf.Reader based on the transfer type of this Session.
-func (s *Session) NewReader(reader *buf.BufferedReader, dest *net.Destination) buf.Reader {
+func (s *Session) NewReader(reader *buf.BufferedReader, dest *net.Destination, largePayload bool) buf.Reader {
 	if s.transferType == protocol.TransferTypeStream {
-		return NewStreamReader(reader)
+		return NewStreamReader(reader, largePayload)
 	}
-	return NewPacketReader(reader, dest)
+	return NewPacketReader(reader, dest, largePayload)
 }
 
 const (

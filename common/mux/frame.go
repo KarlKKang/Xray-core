@@ -26,6 +26,7 @@ const (
 const (
 	OptionData  bitmask.Byte = 0x01
 	OptionError bitmask.Byte = 0x02
+	OptionLargePayload bitmask.Byte = 0x04
 )
 
 type TargetNetwork byte

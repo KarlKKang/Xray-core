@@ -15,14 +15,16 @@ type PacketReader struct {
 	reader io.Reader
 	eof    bool
 	dest   *net.Destination
+	largePayload bool
 }
 
 // NewPacketReader creates a new PacketReader.
-func NewPacketReader(reader io.Reader, dest *net.Destination) *PacketReader {
+func NewPacketReader(reader io.Reader, dest *net.Destination, largePayload bool) *PacketReader {
 	return &PacketReader{
 		reader: reader,
 		eof:    false,
 		dest:   dest,
+		largePayload: largePayload,
 	}
 }
 
@@ -32,9 +34,19 @@ func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 		return nil, io.EOF
 	}
 
-	size, err := serial.ReadUint32(r.reader)
-	if err != nil {
-		return nil, err
+	var size uint32
+	if r.largePayload {
+		nSize, err := serial.ReadUint32(r.reader)
+		if err != nil {
+			return nil, err
+		}
+		size = nSize
+	} else {
+		nSize, err := serial.ReadUint16(r.reader)
+		if err != nil {
+			return nil, err
+		}
+		size = uint32(nSize)
 	}
 
 	if size > buf.Size {
@@ -56,14 +68,16 @@ func (r *PacketReader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 type StreamReader struct {
 	reader      *buf.BufferedReader
 
-	buffer       []byte
 	leftOverSize int32
 	numChunk     uint32
+	largePayload bool
 }
 
 // NewStreamReader creates a new StreamReader.
-func NewStreamReader(reader io.Reader) *StreamReader {
-	r := &StreamReader{}
+func NewStreamReader(reader io.Reader, largePayload bool) *StreamReader {
+	r := &StreamReader{
+		largePayload: largePayload,
+	}
 	if breader, ok := reader.(*buf.BufferedReader); ok {
 		r.reader = breader
 	} else {
@@ -74,11 +88,18 @@ func NewStreamReader(reader io.Reader) *StreamReader {
 }
 
 func (r *StreamReader) readSize() (uint32, error) {
-	buffer :=  make([]byte, 4)
+	bufSize := 2
+	if r.largePayload {
+		bufSize = 4
+	}
+	buffer :=  make([]byte, bufSize)
 	if _, err := io.ReadFull(r.reader, buffer); err != nil {
 		return 0, err
 	}
-	return binary.BigEndian.Uint32(buffer), nil
+	if r.largePayload {
+		return binary.BigEndian.Uint32(buffer), nil
+	}
+	return uint32(binary.BigEndian.Uint16(buffer)), nil
 }
 
 func (r *StreamReader) ReadMultiBuffer() (buf.MultiBuffer, error) {

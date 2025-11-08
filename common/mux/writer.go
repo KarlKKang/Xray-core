@@ -85,11 +85,22 @@ func writeMetaWithFrame(writer buf.Writer, meta FrameMetadata, data buf.MultiBuf
 	if len(data) == 1 {
 		frame.UDP = data[0].UDP
 	}
+	dataLen := data.Len()
+	if dataLen > 65535 {
+		meta.Option.Set(OptionLargePayload)
+	}
 	if err := meta.WriteTo(frame); err != nil {
 		return err
 	}
-	if _, err := serial.WriteUint32(frame, uint32(data.Len())); err != nil {
-		return err
+	
+	if dataLen > 65535 {
+		if _, err := serial.WriteUint32(frame, uint32(dataLen)); err != nil {
+			return err
+		}
+	} else {
+		if _, err := serial.WriteUint16(frame, uint16(dataLen)); err != nil {
+			return err
+		}
 	}
 
 	mb2 := make(buf.MultiBuffer, 0, len(data)+1)

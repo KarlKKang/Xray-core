@@ -175,7 +175,7 @@ func (w *ServerWorker) Close() error {
 func (w *ServerWorker) handleStatusKeepAlive(meta *FrameMetadata, reader *buf.BufferedReader) error {
 	errors.LogDebug(context.Background(), "received mux keepalive frame")
 	if meta.Option.Has(OptionData) {
-		return buf.Copy(NewStreamReader(reader), buf.Discard)
+		return buf.Copy(NewStreamReader(reader, meta.Option.Has(OptionLargePayload)), buf.Discard)
 	}
 	return nil
 }
@@ -211,7 +211,7 @@ func (w *ServerWorker) handleStatusNew(ctx context.Context, meta *FrameMetadata,
 	}
 
 	if meta.GlobalID != [8]byte{} { // MUST ignore empty Global ID
-		mb, err := NewPacketReader(reader, &meta.Target).ReadMultiBuffer()
+		mb, err := NewPacketReader(reader, &meta.Target, meta.Option.Has(OptionLargePayload)).ReadMultiBuffer()
 		if err != nil {
 			return err
 		}
@@ -282,7 +282,7 @@ func (w *ServerWorker) handleStatusNew(ctx context.Context, meta *FrameMetadata,
 	link, err := w.dispatcher.Dispatch(ctx, meta.Target)
 	if err != nil {
 		if meta.Option.Has(OptionData) {
-			buf.Copy(NewStreamReader(reader), buf.Discard)
+			buf.Copy(NewStreamReader(reader, meta.Option.Has(OptionLargePayload)), buf.Discard)
 		}
 		return errors.New("failed to dispatch request.").Base(err)
 	}
@@ -305,7 +305,7 @@ func (w *ServerWorker) handleStatusNew(ctx context.Context, meta *FrameMetadata,
 		return nil
 	}
 
-	rr := s.NewReader(reader, &meta.Target)
+	rr := s.NewReader(reader, &meta.Target, meta.Option.Has(OptionLargePayload))
 	err = buf.Copy(rr, s.output)
 
 	if err != nil && buf.IsWriteError(err) {
@@ -326,10 +326,10 @@ func (w *ServerWorker) handleStatusKeep(meta *FrameMetadata, reader *buf.Buffere
 		closingWriter := NewResponseWriter(meta.SessionID, w.link.Writer, protocol.TransferTypeStream)
 		closingWriter.Close()
 
-		return buf.Copy(NewStreamReader(reader), buf.Discard)
+		return buf.Copy(NewStreamReader(reader, meta.Option.Has(OptionLargePayload)), buf.Discard)
 	}
 
-	rr := s.NewReader(reader, &meta.Target)
+	rr := s.NewReader(reader, &meta.Target, meta.Option.Has(OptionLargePayload))
 	err := buf.Copy(rr, s.output)
 
 	if err != nil && buf.IsWriteError(err) {
@@ -346,7 +346,7 @@ func (w *ServerWorker) handleStatusEnd(meta *FrameMetadata, reader *buf.Buffered
 		s.Close(false)
 	}
 	if meta.Option.Has(OptionData) {
-		return buf.Copy(NewStreamReader(reader), buf.Discard)
+		return buf.Copy(NewStreamReader(reader, meta.Option.Has(OptionLargePayload)), buf.Discard)
 	}
 	return nil
 }

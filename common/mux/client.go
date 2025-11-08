@@ -354,14 +354,14 @@ func (m *ClientWorker) Dispatch(ctx context.Context, link *transport.Link) bool 
 func (m *ClientWorker) handleStatueKeepAlive(meta *FrameMetadata, reader *buf.BufferedReader) error {
 	errors.LogDebug(context.Background(), "received mux keepalive frame")
 	if meta.Option.Has(OptionData) {
-		return buf.Copy(NewStreamReader(reader), buf.Discard)
+		return buf.Copy(NewStreamReader(reader, meta.Option.Has(OptionLargePayload)), buf.Discard)
 	}
 	return nil
 }
 
 func (m *ClientWorker) handleStatusNew(meta *FrameMetadata, reader *buf.BufferedReader) error {
 	if meta.Option.Has(OptionData) {
-		return buf.Copy(NewStreamReader(reader), buf.Discard)
+		return buf.Copy(NewStreamReader(reader, meta.Option.Has(OptionLargePayload)), buf.Discard)
 	}
 	return nil
 }
@@ -377,10 +377,10 @@ func (m *ClientWorker) handleStatusKeep(meta *FrameMetadata, reader *buf.Buffere
 		closingWriter := NewResponseWriter(meta.SessionID, m.link.Writer, protocol.TransferTypeStream)
 		closingWriter.Close()
 
-		return buf.Copy(NewStreamReader(reader), buf.Discard)
+		return buf.Copy(NewStreamReader(reader, meta.Option.Has(OptionLargePayload)), buf.Discard)
 	}
 
-	rr := s.NewReader(reader, &meta.Target)
+	rr := s.NewReader(reader, &meta.Target, meta.Option.Has(OptionLargePayload))
 	err := buf.Copy(rr, s.output)
 	if err != nil && buf.IsWriteError(err) {
 		errors.LogInfoInner(context.Background(), err, "failed to write to downstream. closing session ", s.ID)
@@ -396,7 +396,7 @@ func (m *ClientWorker) handleStatusEnd(meta *FrameMetadata, reader *buf.Buffered
 		s.Close(false)
 	}
 	if meta.Option.Has(OptionData) {
-		return buf.Copy(NewStreamReader(reader), buf.Discard)
+		return buf.Copy(NewStreamReader(reader, meta.Option.Has(OptionLargePayload)), buf.Discard)
 	}
 	return nil
 }

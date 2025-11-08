@@ -73,7 +73,7 @@ func TestReaderWriter(t *testing.T) {
 			t.Error("metadata: ", r)
 		}
 
-		data, err := readAll(NewStreamReader(bytesReader))
+		data, err := readAll(NewStreamReader(bytesReader, false))
 		common.Must(err)
 		if s := data.String(); s != "abcd" {
 			t.Error("data: ", s)
@@ -104,7 +104,7 @@ func TestReaderWriter(t *testing.T) {
 			t.Error("meta: ", r)
 		}
 
-		data, err := readAll(NewStreamReader(bytesReader))
+		data, err := readAll(NewStreamReader(bytesReader, false))
 		common.Must(err)
 		if s := data.String(); s != "efgh" {
 			t.Error("data: ", s)
@@ -123,7 +123,7 @@ func TestReaderWriter(t *testing.T) {
 			t.Error("meta: ", r)
 		}
 
-		data, err := readAll(NewStreamReader(bytesReader))
+		data, err := readAll(NewStreamReader(bytesReader, false))
 		common.Must(err)
 		if s := data.String(); s != "x" {
 			t.Error("data: ", s)
@@ -165,7 +165,7 @@ func TestReaderWriter(t *testing.T) {
 			t.Error("meta: ", r)
 		}
 
-		data, err := readAll(NewStreamReader(bytesReader))
+		data, err := readAll(NewStreamReader(bytesReader, false))
 		common.Must(err)
 		if s := data.String(); s != "y" {
 			t.Error("data: ", s)
