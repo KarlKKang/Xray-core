@@ -400,7 +400,9 @@ func (r *Reverse) monitor() error {
 			Tag:        r.tag,
 			Dispatcher: r.dispatcher,
 		}
-		worker, err := mux.NewServerWorker(session.ContextWithIsReverseMux(r.ctx, true), w, link1)
+		worker, err := mux.NewServerWorker(session.ContextWithIsReverseMux(r.ctx, true), w, link1, mux.ServerStrategy{
+			IdleTimeout: 60,
+		})
 		if err != nil {
 			errors.LogWarningInner(r.ctx, err, "failed to create mux server worker")
 			return nil

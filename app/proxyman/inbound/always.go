@@ -61,11 +61,16 @@ func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *
 		return nil, errors.New("not an inbound proxy.")
 	}
 
+	muxStrategy := mux.ServerStrategy{}
+	if receiverConfig.MultiplexSettings != nil {
+		muxStrategy.IdleTimeout = uint32(receiverConfig.MultiplexSettings.IdleTimeout)
+		muxStrategy.Heartbeat = uint32(receiverConfig.MultiplexSettings.Heartbeat)
+	}
 	h := &AlwaysOnInboundHandler{
 		receiverConfig: receiverConfig,
 		proxyConfig:    proxyConfig,
 		proxy:          p,
-		mux:            mux.NewServer(ctx),
+		mux:            mux.NewServer(ctx, muxStrategy),
 		tag:            tag,
 	}
 

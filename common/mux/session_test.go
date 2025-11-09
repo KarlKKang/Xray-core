@@ -2,6 +2,7 @@ package mux_test
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/xtls/xray-core/common/mux"
 )
@@ -41,11 +42,11 @@ func TestSessionManagerClose(t *testing.T) {
 	m := NewSessionManager()
 	s := m.Allocate(&ClientStrategy{})
 
-	if m.CloseIfNoSessionAndIdle(true) {
+	if m.CloseIfNoSessionAndIdle(0, time.Time{}) {
 		t.Error("able to close")
 	}
 	m.Remove(false, s.ID)
-	if !m.CloseIfNoSessionAndIdle(true) {
+	if !m.CloseIfNoSessionAndIdle(0, time.Time{}) {
 		t.Error("not able to close")
 	}
 }

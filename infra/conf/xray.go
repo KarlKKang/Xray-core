@@ -100,6 +100,9 @@ type MuxConfig struct {
 	Concurrency     int16  `json:"concurrency"`
 	XudpConcurrency int16  `json:"xudpConcurrency"`
 	XudpProxyUDP443 string `json:"xudpProxyUDP443"`
+	Heartbeat       int32 `json:"heartbeat"`
+	IdleTimeout     int32 `json:"idleTimeout"`
+	MaxReusableSecs int32 `json:"maxReusableSecs"`
 }
 
 // Build creates MultiplexingConfig, Concurrency < 0 completely disables mux.
@@ -116,6 +119,21 @@ func (m *MuxConfig) Build() (*proxyman.MultiplexingConfig, error) {
 		Concurrency:     int32(m.Concurrency),
 		XudpConcurrency: int32(m.XudpConcurrency),
 		XudpProxyUDP443: m.XudpProxyUDP443,
+		Heartbeat:       m.Heartbeat,
+		IdleTimeout:     m.IdleTimeout,
+		MaxReusableSecs: m.MaxReusableSecs,
+	}, nil
+}
+
+type InboundMuxConfig struct {
+	Heartbeat       int32 `json:"heartbeat"`
+	IdleTimeout     int32 `json:"idleTimeout"`
+}
+
+func (m *InboundMuxConfig) Build() (*proxyman.ReceiverMultiplexingConfig, error) {
+	return &proxyman.ReceiverMultiplexingConfig{
+		Heartbeat:       m.Heartbeat,
+		IdleTimeout:     m.IdleTimeout,
 	}, nil
 }
 
@@ -127,6 +145,7 @@ type InboundDetourConfig struct {
 	Tag            string                         `json:"tag"`
 	StreamSetting  *StreamConfig                  `json:"streamSettings"`
 	SniffingConfig *SniffingConfig                `json:"sniffing"`
+	MuxSettings    *InboundMuxConfig              `json:"mux"`
 }
 
 // Build implements Buildable.
@@ -174,6 +193,13 @@ func (c *InboundDetourConfig) Build() (*core.InboundHandlerConfig, error) {
 			return nil, errors.New("failed to build sniffing config").Base(err)
 		}
 		receiverSettings.SniffingSettings = s
+	}
+	if c.MuxSettings != nil {
+		ms, err := c.MuxSettings.Build()
+		if err != nil {
+			return nil, errors.New("failed to build Mux config").Base(err)
+		}
+		receiverSettings.MultiplexSettings = ms
 	}
 
 	settings := []byte("{}")

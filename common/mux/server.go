@@ -22,11 +22,19 @@ import (
 
 type Server struct {
 	dispatcher routing.Dispatcher
+	strategy   ServerStrategy
+}
+
+type ServerStrategy struct {
+	IdleTimeout uint32
+	Heartbeat   uint32
 }
 
 // NewServer creates a new mux.Server.
-func NewServer(ctx context.Context) *Server {
-	s := &Server{}
+func NewServer(ctx context.Context, strategy ServerStrategy) *Server {
+	s := &Server{
+		strategy: strategy,
+	}
 	core.RequireFeatures(ctx, func(d routing.Dispatcher) {
 		s.dispatcher = d
 	})
@@ -51,7 +59,7 @@ func (s *Server) Dispatch(ctx context.Context, dest net.Destination) (*transport
 	_, err := NewServerWorker(ctx, s.dispatcher, &transport.Link{
 		Reader: uplinkReader,
 		Writer: downlinkWriter,
-	})
+	}, s.strategy)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +73,7 @@ func (s *Server) DispatchLink(ctx context.Context, dest net.Destination, link *t
 		return s.dispatcher.DispatchLink(ctx, dest, link)
 	}
 	link = s.dispatcher.(*dispatcher.DefaultDispatcher).WrapLink(ctx, link)
-	worker, err := NewServerWorker(ctx, s.dispatcher, link)
+	worker, err := NewServerWorker(ctx, s.dispatcher, link, s.strategy)
 	if err != nil {
 		return err
 	}
@@ -92,24 +100,30 @@ type ServerWorker struct {
 	sessionManager *SessionManager
 	done           *done.Instance
 	timer          *time.Ticker
-	keepAliveTimer *time.Ticker
+	strategy       ServerStrategy
 }
 
-func NewServerWorker(ctx context.Context, d routing.Dispatcher, link *transport.Link) (*ServerWorker, error) {
+func NewServerWorker(ctx context.Context, d routing.Dispatcher, link *transport.Link, s ServerStrategy) (*ServerWorker, error) {
+	monitorInterval := uint32(60)
+	if s.IdleTimeout > 0 && s.IdleTimeout < monitorInterval {
+		monitorInterval = s.IdleTimeout
+	}
 	worker := &ServerWorker{
 		dispatcher:     d,
 		link:           link,
 		sessionManager: NewSessionManager(),
 		done:           done.New(),
-		timer:          time.NewTicker(60 * time.Second),
-		keepAliveTimer: time.NewTicker(45 * time.Second),
+		timer:          time.NewTicker(time.Duration(monitorInterval) * time.Second),
+		strategy:       s,
 	}
 	if inbound := session.InboundFromContext(ctx); inbound != nil {
 		inbound.CanSpliceCopy = 3
 	}
 	go worker.run(ctx)
 	go worker.monitor()
-	go worker.keepAlive()
+	if s.Heartbeat > 0 {
+		go worker.sendHeartbeat(time.Duration(s.Heartbeat) * time.Second)
+	}
 	return worker, nil
 }
 
@@ -135,24 +149,21 @@ func (w *ServerWorker) monitor() {
 			common.Interrupt(w.link.Reader)
 			return
 		case <-w.timer.C:
-			if w.sessionManager.CloseIfNoSessionAndIdle(true) {
+			if w.sessionManager.CloseIfNoSessionAndIdle(w.strategy.IdleTimeout, time.Time{}) {
 				common.Must(w.done.Close())
 			}
 		}
 	}
 }
 
-func (m *ServerWorker) keepAlive() {
-	defer m.keepAliveTimer.Stop()
-
+func (m *ServerWorker) sendHeartbeat(interval time.Duration) {
 	for {
-		select {
-		case <-m.done.Wait():
+		time.Sleep(interval)
+		if m.done.Done() {
 			return
-		case <-m.keepAliveTimer.C:
-			kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream)
-			kaWriter.writeKeepAlive()
 		}
+		kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream)
+		kaWriter.writeKeepAlive()
 	}
 }
 

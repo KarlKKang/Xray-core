@@ -126,7 +126,7 @@ func (m *SessionManager) UpdateLastSeen() {
 	m.lastSeen = time.Now()
 }
 
-func (m *SessionManager) CloseIfNoSessionAndIdle(workerUsable bool) bool {
+func (m *SessionManager) CloseIfNoSessionAndIdle(keepaliveTimeout uint32, unreusableAt time.Time) bool {
 	m.Lock()
 	defer m.Unlock()
 
@@ -138,8 +138,13 @@ func (m *SessionManager) CloseIfNoSessionAndIdle(workerUsable bool) bool {
 		return false
 	}
 
-	if workerUsable && time.Since(m.lastSeen) <= time.Minute {
-		return false
+	if unreusableAt == (time.Time{}) || time.Now().Before(unreusableAt) {
+		if keepaliveTimeout == 0 {
+			return false
+		}
+		if time.Since(m.lastSeen) < time.Duration(keepaliveTimeout)*time.Second {
+			return false
+		}
 	}
 
 	m.closed = true

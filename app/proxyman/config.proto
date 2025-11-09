@@ -39,6 +39,14 @@ message ReceiverConfig {
   bool receive_original_destination = 4;
   reserved 5;
   SniffingConfig sniffing_settings = 6;
+  ReceiverMultiplexingConfig multiplex_settings = 7;
+}
+
+message ReceiverMultiplexingConfig {
+  // Heartbeat interval for Mux connections.
+  int32 heartbeat = 1;
+  // Idle timeout for Mux connections (heartbeat will reset the timer).
+  int32 idleTimeout = 2;
 }
 
 message InboundHandlerConfig {
@@ -68,4 +76,10 @@ message MultiplexingConfig {
   int32 xudpConcurrency = 3;
   // "reject" (default), "allow" or "skip".
   string xudpProxyUDP443 = 4;
+  // Heartbeat interval for Mux connections.
+  int32 heartbeat = 5;
+  // Idle timeout for Mux connections (heartbeat will reset the timer).
+  int32 idleTimeout = 6;
+  // Max duration for reusing Mux connections.
+  int32 maxReusableSecs = 7;
 }

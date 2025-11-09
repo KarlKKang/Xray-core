@@ -72,7 +72,7 @@ func TestRegressionOutboundLeak(t *testing.T) {
 	}
 
 	muxServerUplink, muxServerDownlink := newLinkPair()
-	_, err := mux.NewServerWorker(serverCtx, &dispatcher, muxServerUplink)
+	_, err := mux.NewServerWorker(serverCtx, &dispatcher, muxServerUplink, mux.ServerStrategy{})
 	common.Must(err)
 
 	client, err := mux.NewClientWorker(*muxServerDownlink, mux.ClientStrategy{})

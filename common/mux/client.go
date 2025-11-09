@@ -171,6 +171,9 @@ func (f *DialingWorkerFactory) Create() (*ClientWorker, error) {
 type ClientStrategy struct {
 	MaxConcurrency uint32
 	MaxConnection  uint32
+	Heartbeat	   uint32
+	IdleTimeout	   uint32
+	MaxReusableSecs uint32
 }
 
 type ClientWorker struct {
@@ -180,7 +183,6 @@ type ClientWorker struct {
 	timer          *time.Ticker
 	strategy       ClientStrategy
 	unreusableAt   time.Time
-	keepAliveTimer *time.Ticker
 }
 
 var (
@@ -190,19 +192,32 @@ var (
 
 // NewClientWorker creates a new mux.Client.
 func NewClientWorker(stream transport.Link, s ClientStrategy) (*ClientWorker, error) {
+	monitorInterval := uint32(60)
+	if s.IdleTimeout > 0 && s.IdleTimeout < monitorInterval {
+		monitorInterval = s.IdleTimeout
+	}
+	if s.MaxReusableSecs > 0 && s.MaxReusableSecs < monitorInterval {
+		monitorInterval = s.MaxReusableSecs
+	}
+
 	c := &ClientWorker{
 		sessionManager: NewSessionManager(),
 		link:           stream,
 		done:           done.New(),
-		timer:          time.NewTicker(time.Minute),
+		timer:          time.NewTicker(time.Duration(monitorInterval) * time.Second),
 		strategy:       s,
-		unreusableAt:   time.Now().Add(time.Hour),
-		keepAliveTimer: time.NewTicker(time.Second * 45),
+	}
+
+	if s.MaxReusableSecs > 0 {
+		c.unreusableAt = time.Now().Add(time.Duration(s.MaxReusableSecs) * time.Second)
 	}
 
 	go c.fetchOutput()
 	go c.monitor()
-	go c.keepAlive()
+	
+	if s.Heartbeat > 0 {
+		go c.sendHeartbeat(time.Duration(s.Heartbeat) * time.Second)
+	}
 
 	return c, nil
 }
@@ -239,24 +254,21 @@ func (m *ClientWorker) monitor() {
 			common.Interrupt(m.link.Reader)
 			return
 		case <-m.timer.C:
-			if m.sessionManager.CloseIfNoSessionAndIdle(!time.Now().After(m.unreusableAt)) {
+			if m.sessionManager.CloseIfNoSessionAndIdle(m.strategy.IdleTimeout, m.unreusableAt) {
 				common.Must(m.done.Close())
 			}
 		}
 	}
 }
 
-func (m *ClientWorker) keepAlive() {
-	defer m.keepAliveTimer.Stop()
-
+func (m *ClientWorker) sendHeartbeat(interval time.Duration) {
 	for {
-		select {
-		case <-m.done.Wait():
+		time.Sleep(interval)
+		if m.done.Done() {
 			return
-		case <-m.keepAliveTimer.C:
-			kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream)
-			kaWriter.writeKeepAlive()
 		}
+		kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream)
+		kaWriter.writeKeepAlive()
 	}
 }
 
@@ -318,7 +330,7 @@ func (m *ClientWorker) IsFull() bool {
 		return true
 	}
 
-	if time.Now().After(m.unreusableAt) {
+	if m.unreusableAt != (time.Time{}) && time.Now().After(m.unreusableAt) {
 		return true
 	}
 
