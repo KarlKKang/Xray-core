@@ -98,6 +98,7 @@ func (m *SessionManager) Remove(locked bool, id uint16) {
 		return
 	}
 
+	m.lastSeen = time.Now()
 	delete(m.sessions, id)
 
 	/*
