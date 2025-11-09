@@ -162,6 +162,7 @@ func (m *ServerWorker) sendHeartbeat(interval time.Duration) {
 		if m.done.Done() {
 			return
 		}
+		errors.LogDebug(context.Background(), "sending mux keepalive frame")
 		kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream)
 		kaWriter.writeKeepAlive()
 	}
@@ -393,6 +394,7 @@ func (w *ServerWorker) handleFrame(ctx context.Context, reader *buf.BufferedRead
 
 func (w *ServerWorker) run(ctx context.Context) {
 	defer func() {
+		errors.LogDebug(ctx, "mux server closed")
 		common.Must(w.done.Close())
 	}()
 
