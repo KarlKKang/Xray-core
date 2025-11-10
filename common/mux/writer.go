@@ -50,7 +50,6 @@ func (w *Writer) getNextFrameMeta() FrameMetadata {
 		Target:    w.dest,
 		GlobalID:  w.globalID,
 		Inbound:   w.inbound,
-		Option:    OptionAcceptLargePayload,
 	}
 
 	if w.followup {
@@ -58,6 +57,10 @@ func (w *Writer) getNextFrameMeta() FrameMetadata {
 	} else {
 		w.followup = true
 		meta.SessionStatus = SessionStatusNew
+	}
+
+	if w.acceptLargePayload {
+		meta.Option.Set(OptionAcceptLargePayload)
 	}
 
 	return meta
