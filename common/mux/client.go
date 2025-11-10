@@ -276,7 +276,7 @@ func (m *ClientWorker) sendHeartbeat(interval time.Duration) {
 			continue
 		}
 		errors.LogDebug(context.Background(), "sending mux keepalive frame")
-		kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream)
+		kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream, true)
 		kaWriter.writeKeepAlive()
 	}
 }
@@ -395,7 +395,7 @@ func (m *ClientWorker) handleStatusKeep(meta *FrameMetadata, reader *buf.Buffere
 	s, found := m.sessionManager.Get(meta.SessionID)
 	if !found {
 		// Notify remote peer to close this session.
-		closingWriter := NewResponseWriter(meta.SessionID, m.link.Writer, protocol.TransferTypeStream)
+		closingWriter := NewResponseWriter(meta.SessionID, m.link.Writer, protocol.TransferTypeStream, true)
 		closingWriter.Close()
 
 		return buf.Copy(NewStreamReader(reader, meta.Option.Has(OptionLargePayload)), buf.Discard)

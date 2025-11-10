@@ -18,6 +18,7 @@ type Writer struct {
 	transferType protocol.TransferType
 	globalID     [8]byte
 	inbound      *session.Inbound
+	acceptLargePayload bool
 }
 
 func NewWriter(id uint16, dest net.Destination, writer buf.Writer, transferType protocol.TransferType, globalID [8]byte, inbound *session.Inbound) *Writer {
@@ -29,15 +30,17 @@ func NewWriter(id uint16, dest net.Destination, writer buf.Writer, transferType 
 		transferType: transferType,
 		globalID:     globalID,
 		inbound:      inbound,
+		acceptLargePayload: true,
 	}
 }
 
-func NewResponseWriter(id uint16, writer buf.Writer, transferType protocol.TransferType) *Writer {
+func NewResponseWriter(id uint16, writer buf.Writer, transferType protocol.TransferType, acceptLargePayload bool) *Writer {
 	return &Writer{
 		id:           id,
 		writer:       writer,
 		followup:     true,
 		transferType: transferType,
+		acceptLargePayload: acceptLargePayload,
 	}
 }
 
@@ -47,6 +50,7 @@ func (w *Writer) getNextFrameMeta() FrameMetadata {
 		Target:    w.dest,
 		GlobalID:  w.globalID,
 		Inbound:   w.inbound,
+		Option:    OptionAcceptLargePayload,
 	}
 
 	if w.followup {
@@ -92,7 +96,7 @@ func writeMetaWithFrame(writer buf.Writer, meta FrameMetadata, data buf.MultiBuf
 	if err := meta.WriteTo(frame); err != nil {
 		return err
 	}
-	
+
 	if dataLen > 65535 {
 		if _, err := serial.WriteUint32(frame, uint32(dataLen)); err != nil {
 			return err
@@ -124,14 +128,23 @@ func (w *Writer) WriteMultiBuffer(mb buf.MultiBuffer) error {
 		return w.writeMetaOnly()
 	}
 
+	if w.transferType == protocol.TransferTypeStream && w.acceptLargePayload {
+		var chunk buf.MultiBuffer
+		for i := range mb {
+			chunk = append(chunk, mb[i])
+			mb[i] = nil
+		}
+		mb = mb[:0]
+		if err := w.writeData(chunk); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	for !mb.IsEmpty() {
 		var chunk buf.MultiBuffer
 		if w.transferType == protocol.TransferTypeStream {
-			for i := range mb {
-				chunk = append(chunk, mb[i])
-				mb[i] = nil
-			}
-			mb = mb[:0]
+			mb, chunk = buf.SplitSize(mb, 65535)
 		} else {
 			mb2, b := buf.SplitFirst(mb)
 			mb = mb2

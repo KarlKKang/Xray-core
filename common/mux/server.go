@@ -127,8 +127,8 @@ func NewServerWorker(ctx context.Context, d routing.Dispatcher, link *transport.
 	return worker, nil
 }
 
-func handle(ctx context.Context, s *Session, output buf.Writer) {
-	writer := NewResponseWriter(s.ID, output, s.transferType)
+func handle(ctx context.Context, s *Session, output buf.Writer, acceptLargePayload bool) {
+	writer := NewResponseWriter(s.ID, output, s.transferType, acceptLargePayload)
 	if err := buf.Copy(s.input, writer); err != nil {
 		errors.LogInfoInner(ctx, err, "session ", s.ID, " ends.")
 		writer.hasError = true
@@ -166,7 +166,7 @@ func (m *ServerWorker) sendHeartbeat(interval time.Duration) {
 			continue
 		}
 		errors.LogDebug(context.Background(), "sending mux keepalive frame")
-		kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream)
+		kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream, true)
 		kaWriter.writeKeepAlive()
 	}
 }
@@ -290,7 +290,7 @@ func (w *ServerWorker) handleStatusNew(ctx context.Context, meta *FrameMetadata,
 			x.Mux.Close(false)
 			return errors.New("failed to add new session")
 		}
-		go handle(ctx, x.Mux, w.link.Writer)
+		go handle(ctx, x.Mux, w.link.Writer, meta.Option.Has(OptionAcceptLargePayload))
 		return nil
 	}
 
@@ -315,7 +315,7 @@ func (w *ServerWorker) handleStatusNew(ctx context.Context, meta *FrameMetadata,
 		s.Close(false)
 		return errors.New("failed to add new session")
 	}
-	go handle(ctx, s, w.link.Writer)
+	go handle(ctx, s, w.link.Writer, meta.Option.Has(OptionAcceptLargePayload))
 	if !meta.Option.Has(OptionData) {
 		return nil
 	}
@@ -338,7 +338,7 @@ func (w *ServerWorker) handleStatusKeep(meta *FrameMetadata, reader *buf.Buffere
 	s, found := w.sessionManager.Get(meta.SessionID)
 	if !found {
 		// Notify remote peer to close this session.
-		closingWriter := NewResponseWriter(meta.SessionID, w.link.Writer, protocol.TransferTypeStream)
+		closingWriter := NewResponseWriter(meta.SessionID, w.link.Writer, protocol.TransferTypeStream, true)
 		closingWriter.Close()
 
 		return buf.Copy(NewStreamReader(reader, meta.Option.Has(OptionLargePayload)), buf.Discard)
