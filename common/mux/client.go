@@ -243,6 +243,13 @@ func (m *ClientWorker) Close() error {
 	return m.done.Close()
 }
 
+func (m *ClientWorker) CloseIfNoSessionAndIdle() error {
+	if m.sessionManager.CloseIfNoSessionAndIdle(m.strategy.IdleTimeout, m.unreusableAt) {
+		return m.done.Close()
+	}
+	return nil
+}
+
 func (m *ClientWorker) monitor() {
 	defer m.timer.Stop()
 
@@ -254,9 +261,7 @@ func (m *ClientWorker) monitor() {
 			common.Interrupt(m.link.Reader)
 			return
 		case <-m.timer.C:
-			if m.sessionManager.CloseIfNoSessionAndIdle(m.strategy.IdleTimeout, m.unreusableAt) {
-				common.Must(m.done.Close())
-			}
+			common.Must(m.CloseIfNoSessionAndIdle())
 		}
 	}
 }
@@ -324,17 +329,17 @@ func (m *ClientWorker) IsClosing() bool {
 	if m.strategy.MaxConnection > 0 && sm.Count() >= int(m.strategy.MaxConnection) {
 		return true
 	}
+	if m.unreusableAt != (time.Time{}) && time.Now().After(m.unreusableAt) {
+		return true
+	}
 	return false
 }
 
 // IsFull returns true if this ClientWorker is unable to accept more connections.
 // it might be because it is closing, or the number of connections has reached the limit.
 func (m *ClientWorker) IsFull() bool {
+	common.Must(m.CloseIfNoSessionAndIdle())
 	if m.IsClosing() || m.Closed() {
-		return true
-	}
-
-	if m.unreusableAt != (time.Time{}) && time.Now().After(m.unreusableAt) {
 		return true
 	}
 
