@@ -272,9 +272,6 @@ func (m *ClientWorker) sendHeartbeat(interval time.Duration) {
 		if m.done.Done() {
 			return
 		}
-		if m.sessionManager.Size() != 0 {
-			continue
-		}
 		errors.LogDebug(context.Background(), "sending mux keepalive frame")
 		kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream, true)
 		kaWriter.writeKeepAlive()
