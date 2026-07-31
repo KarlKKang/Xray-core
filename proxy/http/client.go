@@ -21,6 +21,7 @@ import (
 	"github.com/xtls/xray-core/common/session"
 	"github.com/xtls/xray-core/common/signal"
 	"github.com/xtls/xray-core/common/task"
+	"github.com/xtls/xray-core/common/utils"
 	"github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/features/policy"
 	"github.com/xtls/xray-core/transport"
@@ -219,6 +220,7 @@ func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, u
 	for _, h := range header {
 		req.Header.Set(h.Key, h.Value)
 	}
+	utils.TryDefaultHeadersWith(req.Header, "nav")
 
 	connectHTTP1 := func(rawConn net.Conn) (net.Conn, error) {
 		req.Header.Set("Proxy-Connection", "Keep-Alive")
@@ -296,10 +298,7 @@ func setUpHTTPTunnel(ctx context.Context, dest net.Destination, target string, u
 		return nil, err
 	}
 
-	iConn := rawConn
-	if statConn, ok := iConn.(*stat.CounterConnection); ok {
-		iConn = statConn.Connection
-	}
+	iConn := stat.TryUnwrapStatsConn(rawConn)
 
 	nextProto := ""
 	if tlsConn, ok := iConn.(*tls.Conn); ok {

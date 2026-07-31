@@ -71,9 +71,6 @@ func (s *Server) DispatchLink(ctx context.Context, dest net.Destination, link *t
 	if dest.Address != muxCoolAddress {
 		return s.dispatcher.DispatchLink(ctx, dest, link)
 	}
-	if d, ok := s.dispatcher.(routing.WrapLinkDispatcher); ok {
-		link = d.WrapLink(ctx, link)
-	}
 	worker, err := NewServerWorker(ctx, s.dispatcher, link, s.strategy)
 	if err != nil {
 		return err
