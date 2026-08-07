@@ -100,13 +100,13 @@ func (c *SniffingConfig) Build() (*proxyman.SniffingConfig, error) {
 }
 
 type MuxConfig struct {
-	Enabled         bool   `json:"enabled"`
-	Concurrency     int16  `json:"concurrency"`
-	XudpConcurrency int16  `json:"xudpConcurrency"`
-	XudpProxyUDP443 string `json:"xudpProxyUDP443"`
-	Heartbeat       int32 `json:"heartbeat"`
-	IdleTimeout     int32 `json:"idleTimeout"`
-	MaxReusableSecs int32 `json:"maxReusableSecs"`
+	Enabled         bool       `json:"enabled"`
+	Concurrency     int16      `json:"concurrency"`
+	XudpConcurrency int16      `json:"xudpConcurrency"`
+	XudpProxyUDP443 string     `json:"xudpProxyUDP443"`
+	Heartbeat       Int32Range `json:"heartbeat"`
+	IdleTimeout     int32      `json:"idleTimeout"`
+	MaxReusableSecs int32      `json:"maxReusableSecs"`
 }
 
 // Build creates MultiplexingConfig, Concurrency < 0 completely disables mux.
@@ -123,21 +123,21 @@ func (m *MuxConfig) Build() (*proxyman.MultiplexingConfig, error) {
 		Concurrency:     int32(m.Concurrency),
 		XudpConcurrency: int32(m.XudpConcurrency),
 		XudpProxyUDP443: m.XudpProxyUDP443,
-		Heartbeat:       m.Heartbeat,
+		Heartbeat:       NewRangeConfig(m.Heartbeat),
 		IdleTimeout:     m.IdleTimeout,
 		MaxReusableSecs: m.MaxReusableSecs,
 	}, nil
 }
 
 type InboundMuxConfig struct {
-	Heartbeat       int32 `json:"heartbeat"`
-	IdleTimeout     int32 `json:"idleTimeout"`
+	Heartbeat   Int32Range `json:"heartbeat"`
+	IdleTimeout int32      `json:"idleTimeout"`
 }
 
 func (m *InboundMuxConfig) Build() (*proxyman.ReceiverMultiplexingConfig, error) {
 	return &proxyman.ReceiverMultiplexingConfig{
-		Heartbeat:       m.Heartbeat,
-		IdleTimeout:     m.IdleTimeout,
+		Heartbeat:   NewRangeConfig(m.Heartbeat),
+		IdleTimeout: m.IdleTimeout,
 	}, nil
 }
 

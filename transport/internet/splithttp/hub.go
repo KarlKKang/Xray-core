@@ -106,7 +106,7 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 	}
 
 	h.config.WriteResponseHeader(writer, request.Method, request.Header)
-	length := int(h.config.GetNormalizedXPaddingBytes().rand())
+	length := int(h.config.GetNormalizedXPaddingBytes().Rand())
 	config := XPaddingConfig{Length: length}
 
 	if h.config.XPaddingObfsMode {
@@ -220,11 +220,11 @@ func (h *requestHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 				if (hasLegacyRefererCompatMarker || obfsPaddingAccepted) && scStreamUpServerSecs.To > 0 {
 					go func() {
 						for {
-							_, err := httpSC.Write(bytes.Repeat([]byte{'X'}, int(h.config.GetNormalizedXPaddingBytes().rand())))
+							_, err := httpSC.Write(bytes.Repeat([]byte{'X'}, int(h.config.GetNormalizedXPaddingBytes().Rand())))
 							if err != nil {
 								break
 							}
-							time.Sleep(time.Duration(scStreamUpServerSecs.rand()) * time.Second)
+							time.Sleep(time.Duration(scStreamUpServerSecs.Rand()) * time.Second)
 						}
 					}()
 				}

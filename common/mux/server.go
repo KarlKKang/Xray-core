@@ -16,6 +16,7 @@ import (
 	"github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/features/routing"
 	"github.com/xtls/xray-core/transport"
+	"github.com/xtls/xray-core/transport/internet/splithttp"
 	"github.com/xtls/xray-core/transport/pipe"
 )
 
@@ -26,7 +27,7 @@ type Server struct {
 
 type ServerStrategy struct {
 	IdleTimeout uint32
-	Heartbeat   uint32
+	Heartbeat   *splithttp.RangeConfig
 }
 
 // NewServer creates a new mux.Server.
@@ -119,8 +120,8 @@ func NewServerWorker(ctx context.Context, d routing.Dispatcher, link *transport.
 	}
 	go worker.run(ctx)
 	go worker.monitor()
-	if s.Heartbeat > 0 {
-		go worker.sendHeartbeat(time.Duration(s.Heartbeat) * time.Second)
+	if s.Heartbeat.To > 0 {
+		go worker.sendHeartbeat(s.Heartbeat)
 	}
 	return worker, nil
 }
@@ -154,9 +155,11 @@ func (w *ServerWorker) monitor() {
 	}
 }
 
-func (m *ServerWorker) sendHeartbeat(interval time.Duration) {
+func (m *ServerWorker) sendHeartbeat(interval *splithttp.RangeConfig) {
 	for {
-		time.Sleep(interval)
+		sleepDuration := time.Duration(interval.Rand()) * time.Second
+		errors.LogDebug(context.Background(), "next mux keepalive frame in ", sleepDuration)
+		time.Sleep(sleepDuration)
 		if m.done.Done() {
 			return
 		}

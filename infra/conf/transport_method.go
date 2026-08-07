@@ -296,13 +296,6 @@ type XmuxConfig struct {
 	HKeepAlivePeriod int64      `json:"hKeepAlivePeriod"`
 }
 
-func newRangeConfig(input Int32Range) *splithttp.RangeConfig {
-	return &splithttp.RangeConfig{
-		From: input.From,
-		To:   input.To,
-	}
-}
-
 // Build implements Buildable.
 func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 	if c.Extra != nil {
@@ -463,7 +456,7 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 		Path:                 c.Path,
 		Mode:                 c.Mode,
 		Headers:              c.Headers,
-		XPaddingBytes:        newRangeConfig(c.XPaddingBytes),
+		XPaddingBytes:        NewRangeConfig(c.XPaddingBytes),
 		XPaddingObfsMode:     c.XPaddingObfsMode,
 		XPaddingKey:          c.XPaddingKey,
 		XPaddingHeader:       c.XPaddingHeader,
@@ -476,22 +469,22 @@ func (c *SplitHTTPConfig) Build() (proto.Message, error) {
 		SeqKey:               c.SeqKey,
 		UplinkDataPlacement:  c.UplinkDataPlacement,
 		UplinkDataKey:        c.UplinkDataKey,
-		UplinkChunkSize:      newRangeConfig(c.UplinkChunkSize),
+		UplinkChunkSize:      NewRangeConfig(c.UplinkChunkSize),
 		NoGRPCHeader:         c.NoGRPCHeader,
 		NoSSEHeader:          c.NoSSEHeader,
-		ScMaxEachPostBytes:   newRangeConfig(c.ScMaxEachPostBytes),
-		ScMinPostsIntervalMs: newRangeConfig(c.ScMinPostsIntervalMs),
+		ScMaxEachPostBytes:   NewRangeConfig(c.ScMaxEachPostBytes),
+		ScMinPostsIntervalMs: NewRangeConfig(c.ScMinPostsIntervalMs),
 		ScMaxBufferedPosts:   c.ScMaxBufferedPosts,
-		ScStreamUpServerSecs: newRangeConfig(c.ScStreamUpServerSecs),
+		ScStreamUpServerSecs: NewRangeConfig(c.ScStreamUpServerSecs),
 		ServerMaxHeaderBytes: c.ServerMaxHeaderBytes,
 		SessionIDTable:       c.SessionIDTable,
-		SessionIDLength:      newRangeConfig(c.SessionIDLength),
+		SessionIDLength:      NewRangeConfig(c.SessionIDLength),
 		Xmux: &splithttp.XmuxConfig{
-			MaxConcurrency:   newRangeConfig(c.Xmux.MaxConcurrency),
-			MaxConnections:   newRangeConfig(c.Xmux.MaxConnections),
-			CMaxReuseTimes:   newRangeConfig(c.Xmux.CMaxReuseTimes),
-			HMaxRequestTimes: newRangeConfig(c.Xmux.HMaxRequestTimes),
-			HMaxReusableSecs: newRangeConfig(c.Xmux.HMaxReusableSecs),
+			MaxConcurrency:   NewRangeConfig(c.Xmux.MaxConcurrency),
+			MaxConnections:   NewRangeConfig(c.Xmux.MaxConnections),
+			CMaxReuseTimes:   NewRangeConfig(c.Xmux.CMaxReuseTimes),
+			HMaxRequestTimes: NewRangeConfig(c.Xmux.HMaxRequestTimes),
+			HMaxReusableSecs: NewRangeConfig(c.Xmux.HMaxReusableSecs),
 			HKeepAlivePeriod: c.Xmux.HKeepAlivePeriod,
 		},
 	}

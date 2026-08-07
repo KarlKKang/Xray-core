@@ -68,7 +68,7 @@ func (c *Config) GetRequestHeaderWithPayload(payload []byte) http.Header {
 	encodedData := base64.RawURLEncoding.EncodeToString(payload)
 
 	for i := 0; len(encodedData) > 0; i++ {
-		chunkSize := min(int(c.GetNormalizedUplinkChunkSize().rand()), len(encodedData))
+		chunkSize := min(int(c.GetNormalizedUplinkChunkSize().Rand()), len(encodedData))
 		chunk := encodedData[:chunkSize]
 		encodedData = encodedData[chunkSize:]
 		headerKey := fmt.Sprintf("%s-%d", key, i)
@@ -85,7 +85,7 @@ func (c *Config) GetRequestCookiesWithPayload(payload []byte) []*http.Cookie {
 	encodedData := base64.RawURLEncoding.EncodeToString(payload)
 
 	for i := 0; len(encodedData) > 0; i++ {
-		chunkSize := min(int(c.GetNormalizedUplinkChunkSize().rand()), len(encodedData))
+		chunkSize := min(int(c.GetNormalizedUplinkChunkSize().Rand()), len(encodedData))
 		chunk := encodedData[:chunkSize]
 		encodedData = encodedData[chunkSize:]
 		cookieName := fmt.Sprintf("%s_%d", key, i)
@@ -299,7 +299,7 @@ func (c *Config) ApplyMetaToRequest(req *http.Request, sessionId string, seqStr 
 
 func (c *Config) FillStreamRequest(request *http.Request, sessionId string, seqStr string) {
 	request.Header = c.GetRequestHeader()
-	length := int(c.GetNormalizedXPaddingBytes().rand())
+	length := int(c.GetNormalizedXPaddingBytes().Rand())
 	config := XPaddingConfig{Length: length}
 
 	if c.XPaddingObfsMode {
@@ -349,7 +349,7 @@ func (c *Config) FillPacketRequest(request *http.Request, sessionId string, seqS
 		}
 	}
 
-	length := int(c.GetNormalizedXPaddingBytes().rand())
+	length := int(c.GetNormalizedXPaddingBytes().Rand())
 	config := XPaddingConfig{Length: length}
 
 	if c.XPaddingObfsMode {
@@ -483,7 +483,7 @@ func init() {
 	}))
 }
 
-func (c *RangeConfig) rand() int32 {
+func (c *RangeConfig) Rand() int32 {
 	if c == nil {
 		return 0
 	}
@@ -504,7 +504,7 @@ var PredefinedTable = map[string]string{
 }
 
 func (c *Config) GenerateSessionID() string {
-	length := c.SessionIDLength.rand()
+	length := c.SessionIDLength.Rand()
 	table := c.SessionIDTable
 	if predefined, ok := PredefinedTable[table]; ok {
 		table = predefined

@@ -138,7 +138,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 							Strategy: mux.ClientStrategy{
 								MaxConcurrency: uint32(config.Concurrency),
 								MaxConnection:  65535,
-								Heartbeat:      uint32(config.Heartbeat),
+								Heartbeat:      config.Heartbeat,
 								IdleTimeout:    uint32(config.IdleTimeout),
 								MaxReusableSecs: uint32(config.MaxReusableSecs),
 							},
@@ -162,7 +162,7 @@ func NewHandler(ctx context.Context, config *core.OutboundHandlerConfig) (outbou
 							Strategy: mux.ClientStrategy{
 								MaxConcurrency: uint32(config.XudpConcurrency),
 								MaxConnection:  65535,
-								Heartbeat:      uint32(config.Heartbeat),
+								Heartbeat:      config.Heartbeat,
 								IdleTimeout:    uint32(config.IdleTimeout),
 								MaxReusableSecs: uint32(config.MaxReusableSecs),
 							},

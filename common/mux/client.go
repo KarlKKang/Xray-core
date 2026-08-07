@@ -19,6 +19,7 @@ import (
 	"github.com/xtls/xray-core/proxy"
 	"github.com/xtls/xray-core/transport"
 	"github.com/xtls/xray-core/transport/internet"
+	"github.com/xtls/xray-core/transport/internet/splithttp"
 	"github.com/xtls/xray-core/transport/pipe"
 )
 
@@ -171,7 +172,7 @@ func (f *DialingWorkerFactory) Create() (*ClientWorker, error) {
 type ClientStrategy struct {
 	MaxConcurrency uint32
 	MaxConnection  uint32
-	Heartbeat	   uint32
+	Heartbeat	   *splithttp.RangeConfig
 	IdleTimeout	   uint32
 	MaxReusableSecs uint32
 }
@@ -215,8 +216,8 @@ func NewClientWorker(stream transport.Link, s ClientStrategy) (*ClientWorker, er
 	go c.fetchOutput()
 	go c.monitor()
 	
-	if s.Heartbeat > 0 {
-		go c.sendHeartbeat(time.Duration(s.Heartbeat) * time.Second)
+	if s.Heartbeat.To > 0 {
+		go c.sendHeartbeat(s.Heartbeat)
 	}
 
 	return c, nil
@@ -266,9 +267,11 @@ func (m *ClientWorker) monitor() {
 	}
 }
 
-func (m *ClientWorker) sendHeartbeat(interval time.Duration) {
+func (m *ClientWorker) sendHeartbeat(interval *splithttp.RangeConfig) {
 	for {
-		time.Sleep(interval)
+		timeDuration := time.Duration(interval.Rand()) * time.Second
+		errors.LogDebug(context.Background(), "next mux keepalive frame in ", timeDuration)
+		time.Sleep(timeDuration)
 		if m.done.Done() {
 			return
 		}

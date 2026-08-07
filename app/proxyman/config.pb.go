@@ -11,6 +11,7 @@ import (
 	net "github.com/xtls/xray-core/common/net"
 	serial "github.com/xtls/xray-core/common/serial"
 	internet "github.com/xtls/xray-core/transport/internet"
+	splithttp "github.com/xtls/xray-core/transport/internet/splithttp"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -240,7 +241,7 @@ func (x *ReceiverConfig) GetMultiplexSettings() *ReceiverMultiplexingConfig {
 type ReceiverMultiplexingConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Heartbeat interval for Mux connections.
-	Heartbeat int32 `protobuf:"varint,1,opt,name=heartbeat,proto3" json:"heartbeat,omitempty"`
+	Heartbeat *splithttp.RangeConfig `protobuf:"bytes,1,opt,name=heartbeat,proto3" json:"heartbeat,omitempty"`
 	// Idle timeout for Mux connections (heartbeat will reset the timer).
 	IdleTimeout   int32 `protobuf:"varint,2,opt,name=idleTimeout,proto3" json:"idleTimeout,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -277,11 +278,11 @@ func (*ReceiverMultiplexingConfig) Descriptor() ([]byte, []int) {
 	return file_app_proxyman_config_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ReceiverMultiplexingConfig) GetHeartbeat() int32 {
+func (x *ReceiverMultiplexingConfig) GetHeartbeat() *splithttp.RangeConfig {
 	if x != nil {
 		return x.Heartbeat
 	}
-	return 0
+	return nil
 }
 
 func (x *ReceiverMultiplexingConfig) GetIdleTimeout() int32 {
@@ -483,7 +484,7 @@ type MultiplexingConfig struct {
 	// "reject" (default), "allow" or "skip".
 	XudpProxyUDP443 string `protobuf:"bytes,4,opt,name=xudpProxyUDP443,proto3" json:"xudpProxyUDP443,omitempty"`
 	// Heartbeat interval for Mux connections.
-	Heartbeat int32 `protobuf:"varint,5,opt,name=heartbeat,proto3" json:"heartbeat,omitempty"`
+	Heartbeat *splithttp.RangeConfig `protobuf:"bytes,5,opt,name=heartbeat,proto3" json:"heartbeat,omitempty"`
 	// Idle timeout for Mux connections (heartbeat will reset the timer).
 	IdleTimeout int32 `protobuf:"varint,6,opt,name=idleTimeout,proto3" json:"idleTimeout,omitempty"`
 	// Max duration for reusing Mux connections.
@@ -550,11 +551,11 @@ func (x *MultiplexingConfig) GetXudpProxyUDP443() string {
 	return ""
 }
 
-func (x *MultiplexingConfig) GetHeartbeat() int32 {
+func (x *MultiplexingConfig) GetHeartbeat() *splithttp.RangeConfig {
 	if x != nil {
 		return x.Heartbeat
 	}
-	return 0
+	return nil
 }
 
 func (x *MultiplexingConfig) GetIdleTimeout() int32 {
@@ -575,7 +576,7 @@ var File_app_proxyman_config_proto protoreflect.FileDescriptor
 
 const file_app_proxyman_config_proto_rawDesc = "" +
 	"\n" +
-	"\x19app/proxyman/config.proto\x12\x11xray.app.proxyman\x1a\x18common/net/address.proto\x1a\x15common/net/port.proto\x1a\x1ftransport/internet/config.proto\x1a!common/serial/typed_message.proto\x1a\x1bcommon/geodata/geodat.proto\"\x0f\n" +
+	"\x19app/proxyman/config.proto\x12\x11xray.app.proxyman\x1a\x18common/net/address.proto\x1a\x15common/net/port.proto\x1a\x1ftransport/internet/config.proto\x1a!common/serial/typed_message.proto\x1a\x1bcommon/geodata/geodat.proto\x1a)transport/internet/splithttp/config.proto\"\x0f\n" +
 	"\rInboundConfig\"\xad\x02\n" +
 	"\x0eSniffingConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x121\n" +
@@ -591,9 +592,9 @@ const file_app_proxyman_config_proto_rawDesc = "" +
 	"\x0fstream_settings\x18\x03 \x01(\v2%.xray.transport.internet.StreamConfigR\x0estreamSettings\x12@\n" +
 	"\x1creceive_original_destination\x18\x04 \x01(\bR\x1areceiveOriginalDestination\x12N\n" +
 	"\x11sniffing_settings\x18\x06 \x01(\v2!.xray.app.proxyman.SniffingConfigR\x10sniffingSettings\x12\\\n" +
-	"\x12multiplex_settings\x18\a \x01(\v2-.xray.app.proxyman.ReceiverMultiplexingConfigR\x11multiplexSettingsJ\x04\b\x05\x10\x06\"\\\n" +
-	"\x1aReceiverMultiplexingConfig\x12\x1c\n" +
-	"\theartbeat\x18\x01 \x01(\x05R\theartbeat\x12 \n" +
+	"\x12multiplex_settings\x18\a \x01(\v2-.xray.app.proxyman.ReceiverMultiplexingConfigR\x11multiplexSettingsJ\x04\b\x05\x10\x06\"\x8c\x01\n" +
+	"\x1aReceiverMultiplexingConfig\x12L\n" +
+	"\theartbeat\x18\x01 \x01(\v2..xray.transport.internet.splithttp.RangeConfigR\theartbeat\x12 \n" +
 	"\vidleTimeout\x18\x02 \x01(\x05R\vidleTimeout\"\xc0\x01\n" +
 	"\x14InboundHandlerConfig\x12\x10\n" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x12M\n" +
@@ -606,13 +607,13 @@ const file_app_proxyman_config_proto_rawDesc = "" +
 	"\x0eproxy_settings\x18\x03 \x01(\v2$.xray.transport.internet.ProxyConfigR\rproxySettings\x12T\n" +
 	"\x12multiplex_settings\x18\x04 \x01(\v2%.xray.app.proxyman.MultiplexingConfigR\x11multiplexSettings\x12\x19\n" +
 	"\bvia_cidr\x18\x05 \x01(\tR\aviaCidr\x12P\n" +
-	"\x0ftarget_strategy\x18\x06 \x01(\x0e2'.xray.transport.internet.DomainStrategyR\x0etargetStrategy\"\x8e\x02\n" +
+	"\x0ftarget_strategy\x18\x06 \x01(\x0e2'.xray.transport.internet.DomainStrategyR\x0etargetStrategy\"\xbe\x02\n" +
 	"\x12MultiplexingConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12 \n" +
 	"\vconcurrency\x18\x02 \x01(\x05R\vconcurrency\x12(\n" +
 	"\x0fxudpConcurrency\x18\x03 \x01(\x05R\x0fxudpConcurrency\x12(\n" +
-	"\x0fxudpProxyUDP443\x18\x04 \x01(\tR\x0fxudpProxyUDP443\x12\x1c\n" +
-	"\theartbeat\x18\x05 \x01(\x05R\theartbeat\x12 \n" +
+	"\x0fxudpProxyUDP443\x18\x04 \x01(\tR\x0fxudpProxyUDP443\x12L\n" +
+	"\theartbeat\x18\x05 \x01(\v2..xray.transport.internet.splithttp.RangeConfigR\theartbeat\x12 \n" +
 	"\vidleTimeout\x18\x06 \x01(\x05R\vidleTimeout\x12(\n" +
 	"\x0fmaxReusableSecs\x18\a \x01(\x05R\x0fmaxReusableSecsBU\n" +
 	"\x15com.xray.app.proxymanP\x01Z&github.com/xtls/xray-core/app/proxyman\xaa\x02\x11Xray.App.Proxymanb\x06proto3"
@@ -644,9 +645,10 @@ var file_app_proxyman_config_proto_goTypes = []any{
 	(*net.PortList)(nil),               // 10: xray.common.net.PortList
 	(*net.IPOrDomain)(nil),             // 11: xray.common.net.IPOrDomain
 	(*internet.StreamConfig)(nil),      // 12: xray.transport.internet.StreamConfig
-	(*serial.TypedMessage)(nil),        // 13: xray.common.serial.TypedMessage
-	(*internet.ProxyConfig)(nil),       // 14: xray.transport.internet.ProxyConfig
-	(internet.DomainStrategy)(0),       // 15: xray.transport.internet.DomainStrategy
+	(*splithttp.RangeConfig)(nil),      // 13: xray.transport.internet.splithttp.RangeConfig
+	(*serial.TypedMessage)(nil),        // 14: xray.common.serial.TypedMessage
+	(*internet.ProxyConfig)(nil),       // 15: xray.transport.internet.ProxyConfig
+	(internet.DomainStrategy)(0),       // 16: xray.transport.internet.DomainStrategy
 }
 var file_app_proxyman_config_proto_depIdxs = []int32{
 	8,  // 0: xray.app.proxyman.SniffingConfig.domains_excluded:type_name -> xray.common.geodata.DomainRule
@@ -656,18 +658,20 @@ var file_app_proxyman_config_proto_depIdxs = []int32{
 	12, // 4: xray.app.proxyman.ReceiverConfig.stream_settings:type_name -> xray.transport.internet.StreamConfig
 	1,  // 5: xray.app.proxyman.ReceiverConfig.sniffing_settings:type_name -> xray.app.proxyman.SniffingConfig
 	3,  // 6: xray.app.proxyman.ReceiverConfig.multiplex_settings:type_name -> xray.app.proxyman.ReceiverMultiplexingConfig
-	13, // 7: xray.app.proxyman.InboundHandlerConfig.receiver_settings:type_name -> xray.common.serial.TypedMessage
-	13, // 8: xray.app.proxyman.InboundHandlerConfig.proxy_settings:type_name -> xray.common.serial.TypedMessage
-	11, // 9: xray.app.proxyman.SenderConfig.via:type_name -> xray.common.net.IPOrDomain
-	12, // 10: xray.app.proxyman.SenderConfig.stream_settings:type_name -> xray.transport.internet.StreamConfig
-	14, // 11: xray.app.proxyman.SenderConfig.proxy_settings:type_name -> xray.transport.internet.ProxyConfig
-	7,  // 12: xray.app.proxyman.SenderConfig.multiplex_settings:type_name -> xray.app.proxyman.MultiplexingConfig
-	15, // 13: xray.app.proxyman.SenderConfig.target_strategy:type_name -> xray.transport.internet.DomainStrategy
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	13, // 7: xray.app.proxyman.ReceiverMultiplexingConfig.heartbeat:type_name -> xray.transport.internet.splithttp.RangeConfig
+	14, // 8: xray.app.proxyman.InboundHandlerConfig.receiver_settings:type_name -> xray.common.serial.TypedMessage
+	14, // 9: xray.app.proxyman.InboundHandlerConfig.proxy_settings:type_name -> xray.common.serial.TypedMessage
+	11, // 10: xray.app.proxyman.SenderConfig.via:type_name -> xray.common.net.IPOrDomain
+	12, // 11: xray.app.proxyman.SenderConfig.stream_settings:type_name -> xray.transport.internet.StreamConfig
+	15, // 12: xray.app.proxyman.SenderConfig.proxy_settings:type_name -> xray.transport.internet.ProxyConfig
+	7,  // 13: xray.app.proxyman.SenderConfig.multiplex_settings:type_name -> xray.app.proxyman.MultiplexingConfig
+	16, // 14: xray.app.proxyman.SenderConfig.target_strategy:type_name -> xray.transport.internet.DomainStrategy
+	13, // 15: xray.app.proxyman.MultiplexingConfig.heartbeat:type_name -> xray.transport.internet.splithttp.RangeConfig
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_app_proxyman_config_proto_init() }

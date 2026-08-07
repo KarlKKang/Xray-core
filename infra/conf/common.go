@@ -11,6 +11,7 @@ import (
 	"github.com/xtls/xray-core/common/net"
 	"github.com/xtls/xray-core/common/platform"
 	"github.com/xtls/xray-core/common/protocol"
+	"github.com/xtls/xray-core/transport/internet/splithttp"
 )
 
 type StringList []string
@@ -374,4 +375,11 @@ func ParseRangeString(str string) (int, int, error) {
 		}
 	}
 	return 0, 0, errors.New("invalid range string: ", str)
+}
+
+func NewRangeConfig(input Int32Range) *splithttp.RangeConfig {
+	return &splithttp.RangeConfig{
+		From: input.From,
+		To:   input.To,
+	}
 }

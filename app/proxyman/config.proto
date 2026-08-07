@@ -11,6 +11,7 @@ import "common/net/port.proto";
 import "transport/internet/config.proto";
 import "common/serial/typed_message.proto";
 import "common/geodata/geodat.proto";
+import "transport/internet/splithttp/config.proto";
 
 message InboundConfig {}
 
@@ -48,7 +49,7 @@ message ReceiverConfig {
 
 message ReceiverMultiplexingConfig {
   // Heartbeat interval for Mux connections.
-  int32 heartbeat = 1;
+  xray.transport.internet.splithttp.RangeConfig heartbeat = 1;
   // Idle timeout for Mux connections (heartbeat will reset the timer).
   int32 idleTimeout = 2;
 }
@@ -81,7 +82,7 @@ message MultiplexingConfig {
   // "reject" (default), "allow" or "skip".
   string xudpProxyUDP443 = 4;
   // Heartbeat interval for Mux connections.
-  int32 heartbeat = 5;
+  xray.transport.internet.splithttp.RangeConfig heartbeat = 5;
   // Idle timeout for Mux connections (heartbeat will reset the timer).
   int32 idleTimeout = 6;
   // Max duration for reusing Mux connections.
