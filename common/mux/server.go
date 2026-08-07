@@ -120,7 +120,7 @@ func NewServerWorker(ctx context.Context, d routing.Dispatcher, link *transport.
 	}
 	go worker.run(ctx)
 	go worker.monitor()
-	if s.Heartbeat.To > 0 {
+	if s.Heartbeat != nil && s.Heartbeat.To > 0 {
 		go worker.sendHeartbeat(s.Heartbeat)
 	}
 	return worker, nil

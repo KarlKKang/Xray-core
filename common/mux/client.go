@@ -216,7 +216,7 @@ func NewClientWorker(stream transport.Link, s ClientStrategy) (*ClientWorker, er
 	go c.fetchOutput()
 	go c.monitor()
 	
-	if s.Heartbeat.To > 0 {
+	if s.Heartbeat != nil && s.Heartbeat.To > 0 {
 		go c.sendHeartbeat(s.Heartbeat)
 	}
 
