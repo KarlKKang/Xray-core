@@ -170,11 +170,12 @@ func (f *DialingWorkerFactory) Create() (*ClientWorker, error) {
 }
 
 type ClientStrategy struct {
-	MaxConcurrency uint32
-	MaxConnection  uint32
-	Heartbeat	   *splithttp.RangeConfig
-	IdleTimeout	   uint32
-	MaxReusableSecs uint32
+	MaxConcurrency   uint32
+	MaxConnection    uint32
+	Heartbeat        *splithttp.RangeConfig
+	IdleTimeout      uint32
+	MaxReusableSecs  uint32
+	HeartbeatPadding *splithttp.RangeConfig
 }
 
 type ClientWorker struct {
@@ -215,9 +216,9 @@ func NewClientWorker(stream transport.Link, s ClientStrategy) (*ClientWorker, er
 
 	go c.fetchOutput()
 	go c.monitor()
-	
+
 	if s.Heartbeat != nil && s.Heartbeat.To > 0 {
-		go c.sendHeartbeat(s.Heartbeat)
+		go c.sendHeartbeat(s.Heartbeat, s.HeartbeatPadding)
 	}
 
 	return c, nil
@@ -267,7 +268,7 @@ func (m *ClientWorker) monitor() {
 	}
 }
 
-func (m *ClientWorker) sendHeartbeat(interval *splithttp.RangeConfig) {
+func (m *ClientWorker) sendHeartbeat(interval *splithttp.RangeConfig, paddingLength *splithttp.RangeConfig) {
 	for {
 		timeDuration := time.Duration(interval.Rand()) * time.Second
 		errors.LogDebug(context.Background(), "next mux keepalive frame in ", timeDuration)
@@ -275,9 +276,10 @@ func (m *ClientWorker) sendHeartbeat(interval *splithttp.RangeConfig) {
 		if m.done.Done() {
 			return
 		}
-		errors.LogDebug(context.Background(), "sending mux keepalive frame")
 		kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream, true)
-		kaWriter.writeKeepAlive()
+		paddingLen := paddingLength.Rand()
+		errors.LogDebug(context.Background(), "sending mux keepalive frame with padding length ", paddingLen)
+		kaWriter.writeKeepAlive(paddingLen)
 	}
 }
 

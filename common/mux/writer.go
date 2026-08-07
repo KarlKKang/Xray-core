@@ -1,6 +1,8 @@
 package mux
 
 import (
+	"crypto/rand"
+
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/buf"
 	"github.com/xtls/xray-core/common/net"
@@ -66,25 +68,26 @@ func (w *Writer) getNextFrameMeta() FrameMetadata {
 	return meta
 }
 
-func (w *Writer) writeMetaOnly() error {
-	meta := w.getNextFrameMeta()
+func writeMetaOnly(writer buf.Writer, meta FrameMetadata) error {
 	b := buf.New()
 	if err := meta.WriteTo(b); err != nil {
 		return err
 	}
-	return w.writer.WriteMultiBuffer(buf.MultiBuffer{b})
+	return writer.WriteMultiBuffer(buf.MultiBuffer{b})
 }
 
-func (w *Writer) writeKeepAlive() error {
+func (w *Writer) writeKeepAlive(paddingLength int32) error {
 	meta := FrameMetadata{
 		SessionID:     w.id,
 		SessionStatus: SessionStatusKeepAlive,
 	}
-	b := buf.New()
-	if err := meta.WriteTo(b); err != nil {
-		return err
+	if paddingLength <= 0 {
+		return writeMetaOnly(w.writer, meta)
 	}
-	return w.writer.WriteMultiBuffer(buf.MultiBuffer{b})
+	meta.Option.Set(OptionData)
+	padding := make([]byte, paddingLength)
+	rand.Read(padding)
+	return writeMetaWithFrame(w.writer, meta, buf.MergeBytes(buf.MultiBuffer{}, padding))
 }
 
 func writeMetaWithFrame(writer buf.Writer, meta FrameMetadata, data buf.MultiBuffer) error {
@@ -128,7 +131,7 @@ func (w *Writer) WriteMultiBuffer(mb buf.MultiBuffer) error {
 	defer buf.ReleaseMulti(mb)
 
 	if mb.IsEmpty() {
-		return w.writeMetaOnly()
+		return writeMetaOnly(w.writer, w.getNextFrameMeta())
 	}
 
 	if w.transferType == protocol.TransferTypeStream && w.acceptLargePayload {

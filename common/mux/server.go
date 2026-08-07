@@ -26,8 +26,9 @@ type Server struct {
 }
 
 type ServerStrategy struct {
-	IdleTimeout uint32
-	Heartbeat   *splithttp.RangeConfig
+	IdleTimeout      uint32
+	Heartbeat        *splithttp.RangeConfig
+	HeartbeatPadding *splithttp.RangeConfig
 }
 
 // NewServer creates a new mux.Server.
@@ -121,7 +122,7 @@ func NewServerWorker(ctx context.Context, d routing.Dispatcher, link *transport.
 	go worker.run(ctx)
 	go worker.monitor()
 	if s.Heartbeat != nil && s.Heartbeat.To > 0 {
-		go worker.sendHeartbeat(s.Heartbeat)
+		go worker.sendHeartbeat(s.Heartbeat, s.HeartbeatPadding)
 	}
 	return worker, nil
 }
@@ -155,7 +156,7 @@ func (w *ServerWorker) monitor() {
 	}
 }
 
-func (m *ServerWorker) sendHeartbeat(interval *splithttp.RangeConfig) {
+func (m *ServerWorker) sendHeartbeat(interval *splithttp.RangeConfig, paddingLength *splithttp.RangeConfig) {
 	for {
 		sleepDuration := time.Duration(interval.Rand()) * time.Second
 		errors.LogDebug(context.Background(), "next mux keepalive frame in ", sleepDuration)
@@ -163,9 +164,10 @@ func (m *ServerWorker) sendHeartbeat(interval *splithttp.RangeConfig) {
 		if m.done.Done() {
 			return
 		}
-		errors.LogDebug(context.Background(), "sending mux keepalive frame")
 		kaWriter := NewResponseWriter(1, m.link.Writer, protocol.TransferTypeStream, true)
-		kaWriter.writeKeepAlive()
+		paddingLen := paddingLength.Rand()
+		errors.LogDebug(context.Background(), "sending mux keepalive frame with padding length ", paddingLen)
+		kaWriter.writeKeepAlive(paddingLen)
 	}
 }
 

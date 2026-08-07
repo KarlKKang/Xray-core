@@ -86,6 +86,7 @@ func NewAlwaysOnInboundHandler(ctx context.Context, tag string, receiverConfig *
 	if receiverConfig.MultiplexSettings != nil {
 		muxStrategy.IdleTimeout = uint32(receiverConfig.MultiplexSettings.IdleTimeout)
 		muxStrategy.Heartbeat = receiverConfig.MultiplexSettings.Heartbeat
+		muxStrategy.HeartbeatPadding = receiverConfig.MultiplexSettings.HeartbeatPadding
 	}
 	h := &AlwaysOnInboundHandler{
 		receiverConfig: receiverConfig,

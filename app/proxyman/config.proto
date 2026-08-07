@@ -52,6 +52,8 @@ message ReceiverMultiplexingConfig {
   xray.transport.internet.splithttp.RangeConfig heartbeat = 1;
   // Idle timeout for Mux connections (heartbeat will reset the timer).
   int32 idleTimeout = 2;
+  // Padding length for keepalive packets.
+  xray.transport.internet.splithttp.RangeConfig heartbeatPadding = 3;
 }
 
 message InboundHandlerConfig {
@@ -87,4 +89,6 @@ message MultiplexingConfig {
   int32 idleTimeout = 6;
   // Max duration for reusing Mux connections.
   int32 maxReusableSecs = 7;
+  // Padding length for keepalive packets.
+  xray.transport.internet.splithttp.RangeConfig heartbeatPadding = 8;
 }

@@ -100,13 +100,14 @@ func (c *SniffingConfig) Build() (*proxyman.SniffingConfig, error) {
 }
 
 type MuxConfig struct {
-	Enabled         bool       `json:"enabled"`
-	Concurrency     int16      `json:"concurrency"`
-	XudpConcurrency int16      `json:"xudpConcurrency"`
-	XudpProxyUDP443 string     `json:"xudpProxyUDP443"`
-	Heartbeat       Int32Range `json:"heartbeat"`
-	IdleTimeout     int32      `json:"idleTimeout"`
-	MaxReusableSecs int32      `json:"maxReusableSecs"`
+	Enabled          bool       `json:"enabled"`
+	Concurrency      int16      `json:"concurrency"`
+	XudpConcurrency  int16      `json:"xudpConcurrency"`
+	XudpProxyUDP443  string     `json:"xudpProxyUDP443"`
+	Heartbeat        Int32Range `json:"heartbeat"`
+	IdleTimeout      int32      `json:"idleTimeout"`
+	MaxReusableSecs  int32      `json:"maxReusableSecs"`
+	HeartbeatPadding Int32Range `json:"heartbeatPadding"`
 }
 
 // Build creates MultiplexingConfig, Concurrency < 0 completely disables mux.
@@ -119,25 +120,28 @@ func (m *MuxConfig) Build() (*proxyman.MultiplexingConfig, error) {
 		return nil, errors.New(`unknown "xudpProxyUDP443": `, m.XudpProxyUDP443)
 	}
 	return &proxyman.MultiplexingConfig{
-		Enabled:         m.Enabled,
-		Concurrency:     int32(m.Concurrency),
-		XudpConcurrency: int32(m.XudpConcurrency),
-		XudpProxyUDP443: m.XudpProxyUDP443,
-		Heartbeat:       NewRangeConfig(m.Heartbeat),
-		IdleTimeout:     m.IdleTimeout,
-		MaxReusableSecs: m.MaxReusableSecs,
+		Enabled:          m.Enabled,
+		Concurrency:      int32(m.Concurrency),
+		XudpConcurrency:  int32(m.XudpConcurrency),
+		XudpProxyUDP443:  m.XudpProxyUDP443,
+		Heartbeat:        NewRangeConfig(m.Heartbeat),
+		IdleTimeout:      m.IdleTimeout,
+		MaxReusableSecs:  m.MaxReusableSecs,
+		HeartbeatPadding: NewRangeConfig(m.HeartbeatPadding),
 	}, nil
 }
 
 type InboundMuxConfig struct {
-	Heartbeat   Int32Range `json:"heartbeat"`
-	IdleTimeout int32      `json:"idleTimeout"`
+	Heartbeat        Int32Range `json:"heartbeat"`
+	IdleTimeout      int32      `json:"idleTimeout"`
+	HeartbeatPadding Int32Range `json:"heartbeatPadding"`
 }
 
 func (m *InboundMuxConfig) Build() (*proxyman.ReceiverMultiplexingConfig, error) {
 	return &proxyman.ReceiverMultiplexingConfig{
-		Heartbeat:   NewRangeConfig(m.Heartbeat),
-		IdleTimeout: m.IdleTimeout,
+		Heartbeat:        NewRangeConfig(m.Heartbeat),
+		IdleTimeout:      m.IdleTimeout,
+		HeartbeatPadding: NewRangeConfig(m.HeartbeatPadding),
 	}, nil
 }
 
